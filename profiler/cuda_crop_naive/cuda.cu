@@ -1,9 +1,7 @@
-import torch
-from torch.utils.cpp_extension import load_inline
-from PIL import Image
-from torchvision import transforms
+#include <torch/types.h>
+#include <cuda.h>
+#include <cuda_runtime.h>
 
-cuda_source = '''
 template <typename T>
 __global__ void CropCudaKernel(
     const T* image_ptr,
@@ -84,47 +82,3 @@ torch::Tensor crop_image(
     return crops;
 } 
     
-''' 
-
-cpp_source = "torch::Tensor crop_image(torch::Tensor image, torch::Tensor crop_centers, int crop_size)"
-
-# Load the CUDA kernel as a PyTorch extension
-cuda_cropping = load_inline(
-    name='cuda_cropping_extension',
-    cpp_sources=cpp_source,
-    cuda_sources=cuda_source,
-    functions=['crop_image'],
-    with_cuda=True,
-    extra_cuda_cflags=["-O2"],
-    build_directory='./cuda_crop_naive',
-    # extra_cuda_cflags=['--expt-relaxed-constexpr']
-)
-
-# Load and preprocess the image (as we did before)
-image_path = "/mnt/c/Users/Signvrse/Downloads/IMG-20240605-WA0000.jpg"  # Replace with your image path
-image = Image.open(image_path)
-
-transform = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-])
-
-image_tensor = transform(image).unsqueeze(0).cuda()
-
-# Create crop centers tensor
-# Let's say we want to crop 3 regions from the image
-crop_centers = torch.tensor([
-    [100, 100, 100],  # Center of first crop
-    [200, 200, 200],  # Center of second crop
-    [300, 300, 300]   # Center of third crop
-], dtype=torch.int32, device='cuda')
-
-# Define crop size
-crop_size = 64  # Size of each side of the cubic crop
-
-# Call the crop_image function
-crops = cuda_cropping.crop_image(image_tensor, crop_centers, crop_size)
-
-print(f"Input image shape: {image_tensor.shape}")
-print(f"Crop centers shape: {crop_centers.shape}")
-print(f"Output crops shape: {crops.shape}")
