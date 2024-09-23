@@ -5,6 +5,8 @@ from torchvision import transforms
 
 # Updated CUDA kernel source code
 cuda_source = '''
+#include <c10/cuda/CUDAStream.h>
+
 template <typename T>
 __global__ void CropCudaKernel(
     const T* image_ptr,
@@ -70,7 +72,7 @@ torch::Tensor crop_image(
                               image.options());
 
     for (int b = 0; b < batch_size; ++b) {
-	const auto stream = c10::cuda::getCurrentCUDAStream();
+	const auto stream = at::cuda::getCurrentCUDAStream();
         AT_DISPATCH_FLOATING_TYPES(image.type(), "crop_image_cuda", ([&] {
             CropCudaKernel<scalar_t><<<num_crops, 1024, 0, stream.stream()>>>(
                 image[b].data_ptr<scalar_t>(),
@@ -90,7 +92,7 @@ torch::Tensor crop_image(
 }
 '''
 
-cpp_source = "torch::Tensor crop_image(torch::Tensor image, torch::Tensor crop_centers, int crop_size)"
+cpp_source = "torch::Tensor crop_image(torch::Tensor image, torch::Tensor crop_centers, int crop_size);"
 
 # Load the CUDA kernel as a PyTorch extension
 cuda_cropping = load_inline(
