@@ -1,0 +1,1 @@
+IMAGE_PATH = "/mnt/c/Users/Signvrse/Downloads/IMG-20240605-WA0000.jpg"

@@ -2,7 +2,7 @@ import torch
 from torch.utils.cpp_extension import load_inline
 from PIL import Image
 from torchvision import transforms
-
+from config.config  import IMAGE_PATH
 # Updated CUDA kernel source code
 cuda_source = '''
 #include <c10/cuda/CUDAStream.h>
@@ -105,9 +105,7 @@ cuda_cropping = load_inline(
     build_directory='./cuda_crop_naive'
 )
 
-# Load and preprocess the image
-image_path = "/mnt/c/Users/Signvrse/Downloads/IMG-20240605-WA0000.jpg"  # Replace with your image path
-image = Image.open(image_path)
+image = Image.open(IMAGE_PATH)
 
 transform = transforms.Compose([
     transforms.ToTensor(),
@@ -117,21 +115,32 @@ transform = transforms.Compose([
 image_tensor = transform(image).unsqueeze(0).cuda()
 
 # Pad image tensor with depth of 1 for 2D compatibility
-image_tensor = image_tensor.unsqueeze(2)  # Add a "depth" dimension of size 1
+image_tensor = image_tensor.unsqueeze(2) 
 
-# Create crop centers tensor
 crop_centers = torch.tensor([
-    [100, 100, 0],  # Center of first crop (0 depth for 2D)
-    [200, 200, 0],  # Center of second crop
-    [300, 300, 0]   # Center of third crop
+    [100, 100, 0],  
+    [200, 200, 0],  
+    [300, 300, 0]  
 ], dtype=torch.int32, device='cuda')
 
-# Define crop size
-crop_size = 64  # Size of each side of the cubic crop
+crop_size = 64  
 
-# Call the crop_image function
 crops = cuda_cropping.crop_image(image_tensor, crop_centers, crop_size)
 
-print(f"Input image shape: {image_tensor.shape}")
-print(f"Crop centers shape: {crop_centers.shape}")
-print(f"Output crops shape: {crops.shape}")
+import matplotlib.pyplot as plt
+import torchvision.transforms as T
+reverse_transform = T.Compose([
+    T.Normalize(mean=[-0.485, -0.456, -0.406], std=[1/0.229, 1/0.224, 1/0.225]),
+    T.ToPILImage()
+])
+
+crops = crops.cpu()
+num_crops = crops.size(1)  # Assuming the crops tensor has shape (batch_size, num_crops, channels, crop_size, crop_size, crop_size)
+for i in range(num_crops):
+
+    crop_2d = crops[0, i, :, 0, :, :]  
+    crop_image = reverse_transform(crop_2d)  
+    plt.figure()
+    plt.imshow(crop_image)
+    plt.title(f'Crop {i+1}')
+    plt.axis('off')  
