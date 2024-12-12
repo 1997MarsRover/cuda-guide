@@ -65,7 +65,7 @@ int main() {
   printf("Copy data from host to device done.\n");
   float time;
   cudaEvent_t start, stop;
-  
+
   cudaEventCreate(&start);
   cudaEventCreate(&stop);
   cudaEventRecord(start, 0);
@@ -76,7 +76,7 @@ int main() {
   cudaEventSynchronize(stop);
   cudaEventElapsedTime(&time, start, stop);
   
-  printf("Time to generate:  %3.1f ms \n", time);
+  printf("Time to generate:  %3.3f ms \n", time);
   cudaDeviceSynchronize();
 
   // Check for any errors
