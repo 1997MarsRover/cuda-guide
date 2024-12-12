@@ -4,7 +4,6 @@
 #include<stdlib.h>   
 
 
-
 __global__ void sgemm_naive(int M, int N, int K, float alpha, const float *A,
                             const float *B, float beta, float *C) {
   // compute position in C that this thread is responsible for
@@ -64,9 +63,20 @@ int main() {
   cudaMemcpy(d_C, C, M * N * sizeof(float), cudaMemcpyHostToDevice);
 
   printf("Copy data from host to device done.\n");
-
+  float time;
+  cudaEvent_t start, stop;
+  
+  cudaEventCreate(&start);
+  cudaEventCreate(&stop);
+  cudaEventRecord(start, 0);
   // launch the asynchronous execution of the kernel on the device
   sgemm_naive<<<gridDim, blockDim>>>(M, N, K, alpha, d_A, d_B, beta, d_C);
+
+  cudaEventRecord(stop, 0);
+  cudaEventSynchronize(stop);
+  cudaEventElapsedTime(&time, start, stop);
+  
+  printf("Time to generate:  %3.1f ms \n", time);
   cudaDeviceSynchronize();
 
   // Check for any errors
