@@ -35,3 +35,4 @@
   * Reduced power consumption due to GPU acceleration
   * Simplified development process with easy-to-use APIs
 </details>
+
